@@ -7,20 +7,20 @@ import zio.http.*
 object HealthRoutesSpec extends ZIOSpecDefault:
 
   def spec = suite("HealthRoutes")(
-    test("GET /health retourne 200") {
+    test("GET /health returns 200") {
       for
         response <- HealthRoutes.routes.runZIO(Request.get(URL(Path.decode("/health"))))
       yield assertTrue(response.status == Status.Ok)
     },
-    test("GET /health retourne le corps OK") {
+    test("GET /health returns body OK") {
       for
         response <- HealthRoutes.routes.runZIO(Request.get(URL(Path.decode("/health"))))
         body     <- response.body.asString
       yield assertTrue(body == "OK")
     },
-    test("GET /inconnu retourne 404") {
+    test("GET /unknown returns 404") {
       for
-        response <- HealthRoutes.routes.runZIO(Request.get(URL(Path.decode("/inconnu"))))
+        response <- HealthRoutes.routes.runZIO(Request.get(URL(Path.decode("/unknown"))))
       yield assertTrue(response.status == Status.NotFound)
     },
   )

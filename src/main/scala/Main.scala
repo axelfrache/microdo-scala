@@ -1,11 +1,16 @@
-import microdo.api.HealthRoutes
+import microdo.api.{HealthRoutes, HelloRoutes}
 import zio.*
 import zio.http.{Response, Server}
 
 object Main extends ZIOAppDefault:
 
+  private val port = 8080
+
   override def run: Task[Nothing] =
-    Server
-      .serve(HealthRoutes.routes.handleError(_ => Response.internalServerError))
-      .provide(Server.defaultWithPort(8080))
-      .tapError(e => ZIO.logError(s"Erreur serveur : ${e.getMessage}"))
+    for
+      _      <- ZIO.logInfo(s"Starting microdo on port $port")
+      result <- Server
+                  .serve((HealthRoutes.routes ++ HelloRoutes.routes).handleError(_ => Response.internalServerError))
+                  .provide(Server.defaultWithPort(port))
+                  .tapError(e => ZIO.logError(s"Server error: ${e.getMessage}"))
+    yield result

@@ -10,4 +10,10 @@ object Endpoints:
     endpoint.get
       .in("health")
       .out(stringBody)
-      .description("Vérification de l'état du service")
+      .description("Service health check")
+
+  val hello: PublicEndpoint[Unit, Unit, String, Any] =
+    endpoint.get
+      .in("hello")
+      .out(stringBody)
+      .description("Hello world")

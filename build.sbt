@@ -21,4 +21,11 @@ lazy val root = project
       "dev.zio"                     %% "zio-test-sbt"          % zioVersion % Test,
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+    assembly / mainClass := Some("Main"),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "services", _*) => MergeStrategy.concat
+      case PathList("META-INF", _*)             => MergeStrategy.discard
+      case "reference.conf"                     => MergeStrategy.concat
+      case _                                    => MergeStrategy.first
+    },
   )
