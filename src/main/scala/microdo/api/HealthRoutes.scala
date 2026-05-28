@@ -9,5 +9,5 @@ object HealthRoutes:
 
   val routes: Routes[Any, Response] =
     ZioHttpInterpreter().toHttp(
-      Endpoints.health.zServerLogic(_ => ZIO.succeed("OK"))
+      Endpoints.healthEndpoint.zServerLogic(_ => ZIO.succeed("OK"))
     )
