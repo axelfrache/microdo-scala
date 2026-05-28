@@ -1,0 +1,9 @@
+services:
+  microdo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: microdo:local
+    container_name: microdo
+    ports:
+      - "8080:8080"
