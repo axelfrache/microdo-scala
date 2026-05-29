@@ -5,10 +5,36 @@ services:
       dockerfile: Dockerfile
     image: microdo:local
     container_name: microdo
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: squirrelvault
+      DB_USER: squirrelvault
+      DB_PASSWORD: squirrelvault
     ports:
       - "8080:8080"
     depends_on:
-      - minio
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: squirrelvault-postgres
+    environment:
+      POSTGRES_DB: squirrelvault
+      POSTGRES_USER: squirrelvault
+      POSTGRES_PASSWORD: squirrelvault
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U squirrelvault -d squirrelvault"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   minio:
     image: minio/minio:latest
@@ -24,4 +50,5 @@ services:
       - minio-data:/data
 
 volumes:
+  postgres-data:
   minio-data:

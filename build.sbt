@@ -1,8 +1,9 @@
-val scala3Version = "3.8.3"
-val zioVersion    = "2.1.16"
-val tapirVersion  = "1.11.7"
+val scala3Version  = "3.8.3"
+val zioVersion     = "2.1.16"
+val tapirVersion   = "1.11.7"
 val zioHttpVersion = "3.0.1"
 val zioJsonVersion = "0.7.3"
+val zioJdbcVersion = "0.1.2"
 
 lazy val root = project
   .in(file("."))
@@ -17,6 +18,8 @@ lazy val root = project
       "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-zio"             % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-json-zio"        % tapirVersion,
+      "dev.zio"                     %% "zio-jdbc"              % zioJdbcVersion,
+      "org.postgresql"              %  "postgresql"            % "42.7.3",
       "dev.zio"                     %% "zio-test"              % zioVersion % Test,
       "dev.zio"                     %% "zio-test-sbt"          % zioVersion % Test,
     ),

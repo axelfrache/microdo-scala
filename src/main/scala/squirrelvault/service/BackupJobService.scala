@@ -43,11 +43,11 @@ final class BackupJobServiceImpl(repo: BackupJobRepository) extends BackupJobSer
         enabled = req.enabled,
         createdAt = Instant.now()
       )
-      repo.save(job)
+      repo.save(job).orDie
 
-  def list(enabled: Option[Boolean]): UIO[List[BackupJob]] = repo.findAll(enabled)
-  def findById(id: String): UIO[Option[BackupJob]]         = repo.findById(id)
-  def disable(id: String): UIO[Option[BackupJob]]          = repo.disable(id)
+  def list(enabled: Option[Boolean]): UIO[List[BackupJob]] = repo.findAll(enabled).orDie
+  def findById(id: String): UIO[Option[BackupJob]]         = repo.findById(id).orDie
+  def disable(id: String): UIO[Option[BackupJob]]          = repo.disable(id).orDie
 
 object BackupJobServiceImpl:
   val layer: URLayer[BackupJobRepository, BackupJobService] =

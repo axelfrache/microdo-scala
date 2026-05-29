@@ -4,35 +4,35 @@ import squirrelvault.domain.BackupJob
 import zio.*
 
 trait BackupJobRepository:
-  def save(job: BackupJob): UIO[BackupJob]
-  def findAll(enabled: Option[Boolean]): UIO[List[BackupJob]]
-  def findById(id: String): UIO[Option[BackupJob]]
-  def disable(id: String): UIO[Option[BackupJob]]
+  def save(job: BackupJob): Task[BackupJob]
+  def findAll(enabled: Option[Boolean]): Task[List[BackupJob]]
+  def findById(id: String): Task[Option[BackupJob]]
+  def disable(id: String): Task[Option[BackupJob]]
 
 object BackupJobRepository:
-  def save(job: BackupJob): URIO[BackupJobRepository, BackupJob] =
+  def save(job: BackupJob): RIO[BackupJobRepository, BackupJob] =
     ZIO.serviceWithZIO(_.save(job))
-  def findAll(enabled: Option[Boolean]): URIO[BackupJobRepository, List[BackupJob]] =
+  def findAll(enabled: Option[Boolean]): RIO[BackupJobRepository, List[BackupJob]] =
     ZIO.serviceWithZIO(_.findAll(enabled))
-  def findById(id: String): URIO[BackupJobRepository, Option[BackupJob]] =
+  def findById(id: String): RIO[BackupJobRepository, Option[BackupJob]] =
     ZIO.serviceWithZIO(_.findById(id))
-  def disable(id: String): URIO[BackupJobRepository, Option[BackupJob]] =
+  def disable(id: String): RIO[BackupJobRepository, Option[BackupJob]] =
     ZIO.serviceWithZIO(_.disable(id))
 
 final class InMemoryBackupJobRepository(ref: Ref[Map[String, BackupJob]]) extends BackupJobRepository:
-  def save(job: BackupJob): UIO[BackupJob] =
+  def save(job: BackupJob): Task[BackupJob] =
     ref.update(_.updated(job.id, job)).as(job)
 
-  def findAll(enabled: Option[Boolean]): UIO[List[BackupJob]] =
+  def findAll(enabled: Option[Boolean]): Task[List[BackupJob]] =
     ref.get.map { jobs =>
       val all = jobs.values.toList
       enabled.fold(all)(e => all.filter(_.enabled == e))
     }
 
-  def findById(id: String): UIO[Option[BackupJob]] =
+  def findById(id: String): Task[Option[BackupJob]] =
     ref.get.map(_.get(id))
 
-  def disable(id: String): UIO[Option[BackupJob]] =
+  def disable(id: String): Task[Option[BackupJob]] =
     ref.modify { jobs =>
       jobs.get(id) match
         case None => (None, jobs)
