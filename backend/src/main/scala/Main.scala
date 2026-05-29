@@ -29,7 +29,9 @@ object Main extends ZIOAppDefault:
         )
         .provide(
           Server.defaultWithPort(port),
-          Telemetry.layer,
+          Telemetry.tracingLayer,
+          Telemetry.loggingLayer,
+          Telemetry.sdkLayer,
           BackupJobServiceImpl.layer,
           PostgresBackupJobRepository.layer,
           ZConnectionPool.postgres(dbHost, dbPort, dbName, Map("user" -> dbUser, "password" -> dbPassword)),

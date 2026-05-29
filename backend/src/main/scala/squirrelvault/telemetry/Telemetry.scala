@@ -37,5 +37,10 @@ object Telemetry:
 
   private val ctxLayer = OpenTelemetry.contextZIO
 
-  val layer: TaskLayer[Tracing] =
-    (OpenTelemetry.custom(buildSdk) ++ ctxLayer) >>> OpenTelemetry.tracing(serviceName)
+  val sdkLayer: TaskLayer[JOpenTelemetry] = OpenTelemetry.custom(buildSdk)
+
+  val tracingLayer: TaskLayer[Tracing] =
+    (sdkLayer ++ ctxLayer) >>> OpenTelemetry.tracing(serviceName)
+
+  val loggingLayer: TaskLayer[Unit] =
+    (sdkLayer ++ ctxLayer) >>> OpenTelemetry.logging(serviceName)
