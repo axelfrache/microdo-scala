@@ -60,7 +60,7 @@ object BackupJobValidatorSpec extends ZIOSpecDefault:
       assertTrue(errors.contains("expectedFrequencyHours must be greater than 0"))
     },
     test("multiple invalid fields produce all errors") {
-      val req    = valid.copy(name = "", retentionDays = -1, expectedFrequencyHours = 0)
+      val req = valid.copy(name = "", retentionDays = -1, expectedFrequencyHours = 0)
       val errors = BackupJobValidator.validate(req)
       assertTrue(
         errors.contains("name must not be empty"),

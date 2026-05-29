@@ -12,4 +12,4 @@ object SourceType:
       .toRight(s"Invalid SourceType: '$s'. Valid values: ${SourceType.values.map(_.toString).mkString(", ")}")
   }
   given JsonEncoder[SourceType] = JsonEncoder.string.contramap(_.toString)
-  given JsonCodec[SourceType]   = JsonCodec(JsonEncoder[SourceType], JsonDecoder[SourceType])
+  given JsonCodec[SourceType] = JsonCodec(JsonEncoder[SourceType], JsonDecoder[SourceType])

@@ -27,11 +27,11 @@ object BackupJobRoutes:
       (for
         bodyStr <- req.body.asString.orElseFail(Response.internalServerError)
         createReq <- ZIO
-                       .fromEither(bodyStr.fromJson[CreateBackupJobRequest])
-                       .mapError(invalidJson)
+          .fromEither(bodyStr.fromJson[CreateBackupJobRequest])
+          .mapError(invalidJson)
         result <- BackupJobService
-                    .create(createReq)
-                    .mapError(err => jsonResponse(err.toJson, Status.BadRequest))
+          .create(createReq)
+          .mapError(err => jsonResponse(err.toJson, Status.BadRequest))
       yield jsonResponse(result.toJson, Status.Created)).merge
     },
     Method.GET / "backup-jobs" -> handler { (req: Request) =>

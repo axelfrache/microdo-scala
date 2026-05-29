@@ -35,7 +35,7 @@ final class InMemoryBackupJobRepository(ref: Ref[Map[String, BackupJob]]) extend
   def disable(id: String): Task[Option[BackupJob]] =
     ref.modify { jobs =>
       jobs.get(id) match
-        case None => (None, jobs)
+        case None      => (None, jobs)
         case Some(job) =>
           val updated = job.copy(enabled = false)
           (Some(updated), jobs.updated(id, updated))

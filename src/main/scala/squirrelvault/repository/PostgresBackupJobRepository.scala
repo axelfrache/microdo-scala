@@ -9,20 +9,23 @@ final class PostgresBackupJobRepository(pool: ZConnectionPool) extends BackupJob
 
   private given JdbcDecoder[BackupJob] = new JdbcDecoder[BackupJob]:
     def unsafeDecode(columnIndex: Int, rs: ResultSet): (Int, BackupJob) =
-      (columnIndex, BackupJob(
-        id = rs.getString("id"),
-        name = rs.getString("name"),
-        sourceType = SourceType.valueOf(rs.getString("source_type")),
-        source = rs.getString("source"),
-        targetBucket = rs.getString("target_bucket"),
-        targetPrefix = rs.getString("target_prefix"),
-        schedule = rs.getString("schedule"),
-        retentionDays = rs.getInt("retention_days"),
-        critical = rs.getBoolean("critical"),
-        expectedFrequencyHours = rs.getInt("expected_frequency_hours"),
-        enabled = rs.getBoolean("enabled"),
-        createdAt = rs.getTimestamp("created_at").toInstant
-      ))
+      (
+        columnIndex,
+        BackupJob(
+          id = rs.getString("id"),
+          name = rs.getString("name"),
+          sourceType = SourceType.valueOf(rs.getString("source_type")),
+          source = rs.getString("source"),
+          targetBucket = rs.getString("target_bucket"),
+          targetPrefix = rs.getString("target_prefix"),
+          schedule = rs.getString("schedule"),
+          retentionDays = rs.getInt("retention_days"),
+          critical = rs.getBoolean("critical"),
+          expectedFrequencyHours = rs.getInt("expected_frequency_hours"),
+          enabled = rs.getBoolean("enabled"),
+          createdAt = rs.getTimestamp("created_at").toInstant
+        )
+      )
 
   private val selectAll =
     sql"SELECT id, name, source_type, source, target_bucket, target_prefix, schedule, retention_days, critical, expected_frequency_hours, enabled, created_at FROM backup_jobs"
@@ -84,7 +87,7 @@ object PostgresBackupJobRepository:
     ZLayer {
       for
         pool <- ZIO.service[ZConnectionPool]
-        repo  = new PostgresBackupJobRepository(pool)
-        _    <- repo.initSchema
+        repo = new PostgresBackupJobRepository(pool)
+        _ <- repo.initSchema
       yield repo
     }

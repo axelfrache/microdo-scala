@@ -10,10 +10,10 @@ object Main extends ZIOAppDefault:
 
   private val port = 8080
 
-  private val dbHost     = sys.env.getOrElse("DB_HOST", "localhost")
-  private val dbPort     = sys.env.getOrElse("DB_PORT", "5432").toInt
-  private val dbName     = sys.env.getOrElse("DB_NAME", "squirrelvault")
-  private val dbUser     = sys.env.getOrElse("DB_USER", "squirrelvault")
+  private val dbHost = sys.env.getOrElse("DB_HOST", "localhost")
+  private val dbPort = sys.env.getOrElse("DB_PORT", "5432").toInt
+  private val dbName = sys.env.getOrElse("DB_NAME", "squirrelvault")
+  private val dbUser = sys.env.getOrElse("DB_USER", "squirrelvault")
   private val dbPassword = sys.env.getOrElse("DB_PASSWORD", "squirrelvault")
 
   override def run: Task[Nothing] =

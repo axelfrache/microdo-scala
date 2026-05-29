@@ -40,29 +40,29 @@ object BackupJobServiceSpec extends ZIOSpecDefault:
     }.provide(serviceLayer),
     test("list returns all created jobs") {
       for
-        _    <- BackupJobService.create(valid)
-        _    <- BackupJobService.create(valid.copy(name = "second-backup"))
+        _ <- BackupJobService.create(valid)
+        _ <- BackupJobService.create(valid.copy(name = "second-backup"))
         jobs <- BackupJobService.list(None)
       yield assertTrue(jobs.length == 2)
     }.provide(serviceLayer),
     test("list filters by enabled=true") {
       for
         job1 <- BackupJobService.create(valid)
-        _    <- BackupJobService.create(valid.copy(name = "disabled-backup", enabled = false))
+        _ <- BackupJobService.create(valid.copy(name = "disabled-backup", enabled = false))
         jobs <- BackupJobService.list(Some(true))
       yield assertTrue(jobs.length == 1, jobs.head.id == job1.id)
     }.provide(serviceLayer),
     test("list filters by enabled=false") {
       for
-        _    <- BackupJobService.create(valid)
-        _    <- BackupJobService.create(valid.copy(name = "disabled-backup", enabled = false))
+        _ <- BackupJobService.create(valid)
+        _ <- BackupJobService.create(valid.copy(name = "disabled-backup", enabled = false))
         jobs <- BackupJobService.list(Some(false))
       yield assertTrue(jobs.length == 1, jobs.head.name == "disabled-backup")
     }.provide(serviceLayer),
     test("findById returns the job when it exists") {
       for
         created <- BackupJobService.create(valid)
-        found   <- BackupJobService.findById(created.id)
+        found <- BackupJobService.findById(created.id)
       yield assertTrue(found.contains(created))
     }.provide(serviceLayer),
     test("findById returns None for unknown id") {
@@ -71,7 +71,7 @@ object BackupJobServiceSpec extends ZIOSpecDefault:
     }.provide(serviceLayer),
     test("disable sets enabled to false") {
       for
-        created  <- BackupJobService.create(valid)
+        created <- BackupJobService.create(valid)
         disabled <- BackupJobService.disable(created.id)
       yield assertTrue(disabled.exists(!_.enabled), disabled.exists(_.id == created.id))
     }.provide(serviceLayer),
