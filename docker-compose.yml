@@ -11,12 +11,16 @@ services:
       DB_NAME: squirrelvault
       DB_USER: squirrelvault
       DB_PASSWORD: squirrelvault
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: squirrelvault
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_started
+      jaeger:
         condition: service_started
 
   frontend:
@@ -59,6 +63,15 @@ services:
       - "9001:9001"
     volumes:
       - minio-data:/data
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: squirrelvault-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4318:4318"
 
 volumes:
   postgres-data:

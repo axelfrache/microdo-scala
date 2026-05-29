@@ -6,6 +6,7 @@ import squirrelvault.service.BackupJobService
 import zio.*
 import zio.http.*
 import zio.json.*
+import zio.telemetry.opentelemetry.tracing.Tracing
 
 object BackupJobRoutes:
 
@@ -22,35 +23,51 @@ object BackupJobRoutes:
   private def invalidJson(detail: String): Response =
     jsonResponse(ValidationErrorResponse(List(s"Invalid JSON: $detail")).toJson, Status.BadRequest)
 
-  val routes: Routes[BackupJobService, Nothing] = Routes(
+  val routes: Routes[BackupJobService & Tracing, Nothing] = Routes(
     Method.POST / "backup-jobs" -> handler { (req: Request) =>
-      (for
-        bodyStr <- req.body.asString.orElseFail(Response.internalServerError)
-        createReq <- ZIO
-          .fromEither(bodyStr.fromJson[CreateBackupJobRequest])
-          .mapError(invalidJson)
-        result <- BackupJobService
-          .create(createReq)
-          .mapError(err => jsonResponse(err.toJson, Status.BadRequest))
-      yield jsonResponse(result.toJson, Status.Created)).merge
+      ZIO.serviceWithZIO[Tracing] { tracing =>
+        tracing.span("HTTP POST /backup-jobs") {
+          (for
+            bodyStr <- req.body.asString.orElseFail(Response.internalServerError)
+            createReq <- ZIO
+              .fromEither(bodyStr.fromJson[CreateBackupJobRequest])
+              .mapError(invalidJson)
+            result <- BackupJobService
+              .create(createReq)
+              .mapError(err => jsonResponse(err.toJson, Status.BadRequest))
+          yield jsonResponse(result.toJson, Status.Created)).merge
+        }
+      }
     },
     Method.GET / "backup-jobs" -> handler { (req: Request) =>
-      val enabledFilter = req.url.queryParams.getAll("enabled").headOption.collect {
-        case "true"  => true
-        case "false" => false
+      ZIO.serviceWithZIO[Tracing] { tracing =>
+        tracing.span("HTTP GET /backup-jobs") {
+          val enabledFilter = req.url.queryParams.getAll("enabled").headOption.collect {
+            case "true"  => true
+            case "false" => false
+          }
+          BackupJobService.list(enabledFilter).map(jobs => jsonResponse(jobs.toJson))
+        }
       }
-      BackupJobService.list(enabledFilter).map(jobs => jsonResponse(jobs.toJson))
     },
     Method.GET / "backup-jobs" / string("id") -> handler { (id: String, _: Request) =>
-      BackupJobService.findById(id).map {
-        case Some(job) => jsonResponse(job.toJson)
-        case None      => notFound
+      ZIO.serviceWithZIO[Tracing] { tracing =>
+        tracing.span("HTTP GET /backup-jobs/:id") {
+          BackupJobService.findById(id).map {
+            case Some(job) => jsonResponse(job.toJson)
+            case None      => notFound
+          }
+        }
       }
     },
     Method.PATCH / "backup-jobs" / string("id") / "disable" -> handler { (id: String, _: Request) =>
-      BackupJobService.disable(id).map {
-        case Some(job) => jsonResponse(job.toJson)
-        case None      => notFound
+      ZIO.serviceWithZIO[Tracing] { tracing =>
+        tracing.span("HTTP PATCH /backup-jobs/:id/disable") {
+          BackupJobService.disable(id).map {
+            case Some(job) => jsonResponse(job.toJson)
+            case None      => notFound
+          }
+        }
       }
     }
   )

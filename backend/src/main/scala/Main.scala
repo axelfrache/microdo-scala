@@ -2,6 +2,7 @@ import squirrelvault.api.{HealthRoutes, HelloRoutes, PersonRoutes}
 import squirrelvault.api.BackupJobRoutes
 import squirrelvault.repository.PostgresBackupJobRepository
 import squirrelvault.service.BackupJobServiceImpl
+import squirrelvault.telemetry.Telemetry
 import zio.*
 import zio.http.{Response, Server}
 import zio.jdbc.{ZConnectionPool, ZConnectionPoolConfig}
@@ -28,6 +29,7 @@ object Main extends ZIOAppDefault:
         )
         .provide(
           Server.defaultWithPort(port),
+          Telemetry.layer,
           BackupJobServiceImpl.layer,
           PostgresBackupJobRepository.layer,
           ZConnectionPool.postgres(dbHost, dbPort, dbName, Map("user" -> dbUser, "password" -> dbPassword)),
