@@ -29,7 +29,7 @@ object Main extends ZIOAppDefault:
         )
         .provide(
           Server.defaultWithPort(port),
-          Telemetry.tracingLayer,
+          Telemetry.layer,
           Telemetry.loggingLayer,
           Telemetry.sdkLayer,
           BackupJobServiceImpl.layer,

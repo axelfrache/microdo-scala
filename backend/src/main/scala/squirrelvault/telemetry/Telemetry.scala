@@ -39,7 +39,7 @@ object Telemetry:
 
   val sdkLayer: TaskLayer[JOpenTelemetry] = OpenTelemetry.custom(buildSdk)
 
-  val tracingLayer: TaskLayer[Tracing] =
+  val layer: TaskLayer[Tracing] =
     (sdkLayer ++ ctxLayer) >>> OpenTelemetry.tracing(serviceName)
 
   val loggingLayer: TaskLayer[Unit] =
