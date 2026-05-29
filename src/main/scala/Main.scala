@@ -1,4 +1,7 @@
 import microdo.api.{HealthRoutes, HelloRoutes, PersonRoutes}
+import squirrelvault.api.BackupJobRoutes
+import squirrelvault.repository.InMemoryBackupJobRepository
+import squirrelvault.service.BackupJobServiceImpl
 import zio.*
 import zio.http.{Response, Server}
 
@@ -12,8 +15,13 @@ object Main extends ZIOAppDefault:
       result <- Server
         .serve(
           (HealthRoutes.routes ++ HelloRoutes.routes ++ PersonRoutes.routes)
-            .handleError(_ => Response.internalServerError)
+            .handleError(_ => Response.internalServerError) ++
+            BackupJobRoutes.routes
         )
-        .provide(Server.defaultWithPort(port))
+        .provide(
+          Server.defaultWithPort(port),
+          BackupJobServiceImpl.layer,
+          InMemoryBackupJobRepository.layer
+        )
         .tapError(e => ZIO.logError(s"Server error: ${e.getMessage}"))
     yield result
