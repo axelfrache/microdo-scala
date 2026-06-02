@@ -47,11 +47,11 @@ object BackupJobValidator:
   private def isValidCron(schedule: String): Boolean =
     val fields = schedule.trim.split("\\s+")
     fields.length == 5 &&
-      validateField(fields(0), 0, 59, allowNames = false) &&
-      validateField(fields(1), 0, 23, allowNames = false) &&
-      validateField(fields(2), 1, 31, allowNames = false) &&
-      validateField(fields(3), 1, 12, allowNames = true) &&
-      validateField(fields(4), 0, 7, allowNames = true, dayOfWeek = true)
+    validateField(fields(0), 0, 59, allowNames = false) &&
+    validateField(fields(1), 0, 23, allowNames = false) &&
+    validateField(fields(2), 1, 31, allowNames = false) &&
+    validateField(fields(3), 1, 12, allowNames = true) &&
+    validateField(fields(4), 0, 7, allowNames = true, dayOfWeek = true)
 
   private def validateField(
       field: String,
@@ -71,9 +71,9 @@ object BackupJobValidator:
   ): Boolean =
     val pieces = part.split("/", -1)
     pieces.length == 1 && validateBase(pieces(0), min, max, allowNames, dayOfWeek) ||
-      pieces.length == 2 &&
-        isPositiveInt(pieces(1)) &&
-        validateBase(pieces(0), min, max, allowNames, dayOfWeek)
+    pieces.length == 2 &&
+    isPositiveInt(pieces(1)) &&
+    validateBase(pieces(0), min, max, allowNames, dayOfWeek)
 
   private def validateBase(
       base: String,
@@ -86,8 +86,8 @@ object BackupJobValidator:
     else if base.contains("-") then
       val range = base.split("-", -1)
       range.length == 2 &&
-        validateAtom(range(0), min, max, allowNames, dayOfWeek) &&
-        validateAtom(range(1), min, max, allowNames, dayOfWeek)
+      validateAtom(range(0), min, max, allowNames, dayOfWeek) &&
+      validateAtom(range(1), min, max, allowNames, dayOfWeek)
     else validateAtom(base, min, max, allowNames, dayOfWeek)
 
   private def validateAtom(
