@@ -1,7 +1,7 @@
 import squirrelvault.api.{HealthRoutes, HelloRoutes, PersonRoutes}
 import squirrelvault.api.BackupJobRoutes
 import squirrelvault.api.BackupRunRoutes
-import squirrelvault.repository.InMemoryBackupRunRepository
+import squirrelvault.repository.PostgresBackupRunRepository
 import squirrelvault.service.SimpleBackupExecutor
 import squirrelvault.service.InMemoryBackupRunDispatcher
 import squirrelvault.repository.PostgresBackupJobRepository
@@ -38,7 +38,7 @@ object Main extends ZIOAppDefault:
           Telemetry.sdkLayer,
           BackupJobServiceImpl.layer,
           PostgresBackupJobRepository.layer,
-          InMemoryBackupRunRepository.layer,
+          PostgresBackupRunRepository.layer,
           SimpleBackupExecutor.layer,
           InMemoryBackupRunDispatcher.layer,
           ZConnectionPool.postgres(dbHost, dbPort, dbName, Map("user" -> dbUser, "password" -> dbPassword)),

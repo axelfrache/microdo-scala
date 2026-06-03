@@ -22,7 +22,7 @@ object BackupRunRoutes:
         val tracing = env.get[Tracing]
         tracing.span(s"HTTP POST /backup-jobs/$id/run") {
           val runId = UUID.randomUUID().toString
-          val pending = BackupRun(runId, id, "PENDING", None, None, None, None, None)
+          val pending = BackupRun(runId, id, "PENDING", None, None, None, None, None, None)
           (for
             _ <- repo.create(pending)
             _ <- dispatcher.enqueue(id, runId)

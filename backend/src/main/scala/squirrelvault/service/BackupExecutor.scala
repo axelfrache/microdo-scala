@@ -3,8 +3,7 @@ package squirrelvault.service
 import squirrelvault.domain.BackupRun
 import squirrelvault.repository.BackupRunRepository
 import zio.*
-import java.time.Instant
-import java.util.UUID
+import java.time.{Duration, Instant}
 
 trait BackupExecutor:
   def startRun(jobId: String, runId: String): Task[Unit]
@@ -19,13 +18,19 @@ object BackupExecutor:
 final class SimpleBackupExecutor(repo: BackupRunRepository) extends BackupExecutor:
   def startRun(jobId: String, runId: String): Task[Unit] =
     val now = Instant.now()
-    val running = BackupRun(runId, jobId, "RUNNING", Some(now), None, None, None, None)
+    val running = BackupRun(runId, jobId, "RUNNING", Some(now), None, None, None, None, None)
     for
       _ <- repo.update(running)
       // simulate work
       _ <- ZIO.sleep(2.seconds)
       finished = Instant.now()
-      completed = running.copy(status = "SUCCESS", finishedAt = Some(finished), sizeMb = Some(123), location = Some(s"s3://backups/$jobId/$runId.dump"))
+      completed = running.copy(
+        status = "SUCCESS",
+        finishedAt = Some(finished),
+        duration = Some(Duration.between(now, finished).toMillis),
+        sizeMb = Some(123),
+        location = Some(s"s3://backups/$jobId/$runId.dump")
+      )
       _ <- repo.update(completed)
     yield ()
 
