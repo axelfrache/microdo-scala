@@ -9,7 +9,7 @@ final case class BackupRun(
     status: String,
     startedAt: Option[Instant],
     finishedAt: Option[Instant],
-  duration: Option[Long],
+    duration: Option[Long],
     sizeMb: Option[Long],
     location: Option[String],
     error: Option[String]

@@ -64,7 +64,9 @@ final class BackupExecutor(
           case None      => ZIO.fail(new IllegalArgumentException(s"Backup job $jobId not found"))
         }
         _ <- validateJob(job)
-        dumpFile <- ZIO.acquireRelease(ZIO.attemptBlocking(Files.createTempFile(s"backup-$runId-", ".dump")))(cleanupTempFile)
+        dumpFile <- ZIO.acquireRelease(ZIO.attemptBlocking(Files.createTempFile(s"backup-$runId-", ".dump")))(
+          cleanupTempFile
+        )
         _ <- runPgDump(job.source, dumpFile)
         sizeBytes <- ZIO.attemptBlocking(Files.size(dumpFile))
         location <- uploadToMinio(job, runId, dumpFile)
@@ -87,7 +89,7 @@ final class BackupExecutor(
   private def validateJob(job: BackupJob): Task[Unit] =
     job.sourceType match
       case SourceType.PostgreSQL => ZIO.unit
-      case other                 => ZIO.fail(new IllegalArgumentException(s"Unsupported source type for backup: $other"))
+      case other => ZIO.fail(new IllegalArgumentException(s"Unsupported source type for backup: $other"))
 
   private def runPgDump(source: String, dumpFile: Path): Task[Unit] =
     ZIO.attemptBlocking {
@@ -117,7 +119,13 @@ final class BackupExecutor(
         throw new RuntimeException(s"pg_dump failed with exit code $exitCode: $output")
     }
 
-  private final case class PostgresConnection(host: String, port: Option[Int], user: String, password: Option[String], database: String)
+  private final case class PostgresConnection(
+      host: String,
+      port: Option[Int],
+      user: String,
+      password: Option[String],
+      database: String
+  )
 
   private def parsePostgresSource(source: String): PostgresConnection =
     val uri = URI.create(source)
@@ -132,7 +140,7 @@ final class BackupExecutor(
           case Array(rawUser, rawPassword) => (rawUser, Some(rawPassword))
           case Array(rawUser)              => (rawUser, None)
       case Some(value) if value.nonEmpty => (value, None)
-      case _                              => (host, None)
+      case _                             => (host, None)
 
     if !scheme.exists(Set("postgres", "postgresql").contains) || host.isBlank || database.isBlank then
       throw new IllegalArgumentException(s"Unsupported PostgreSQL source URI: $source")
@@ -147,7 +155,8 @@ final class BackupExecutor(
 
   private def uploadToMinio(job: BackupJob, runId: String, dumpFile: Path): Task[String] =
     ZIO.attemptBlocking {
-      val client = MinioClient.builder()
+      val client = MinioClient
+        .builder()
         .endpoint(storageConfig.endpoint)
         .credentials(storageConfig.accessKey, storageConfig.secretKey)
         .build()
@@ -157,7 +166,8 @@ final class BackupExecutor(
 
       val objectName = buildObjectName(job.targetPrefix, runId)
       client.uploadObject(
-        UploadObjectArgs.builder()
+        UploadObjectArgs
+          .builder()
           .bucket(job.targetBucket)
           .`object`(objectName)
           .filename(dumpFile.toString)

@@ -30,17 +30,21 @@ object BackupRunRoutesSpec extends ZIOSpecDefault:
       def startRun(jobId: String, runId: String): Task[Unit] =
         for
           now <- Clock.instant
-          _ <- repo.update(squirrelvault.domain.BackupRun(runId, jobId, "SUCCESS", Some(now), Some(now), Some(0), Some(10), Some("s3://dummy"), None))
+          _ <- repo.update(
+            squirrelvault.domain
+              .BackupRun(runId, jobId, "SUCCESS", Some(now), Some(now), Some(0), Some(10), Some("s3://dummy"), None)
+          )
         yield ()
   }
 
-  private val runLayer = ZLayer.make[BackupJobRepository & BackupRunRepository & BackupExecutorService & BackupRunDispatcher & Tracing](
-    InMemoryBackupJobRepository.layer,
-    InMemoryBackupRunRepository.layer,
-    mockExecutorLayer,
-    InMemoryBackupRunDispatcher.layer,
-    Telemetry.layer
-  )
+  private val runLayer =
+    ZLayer.make[BackupJobRepository & BackupRunRepository & BackupExecutorService & BackupRunDispatcher & Tracing](
+      InMemoryBackupJobRepository.layer,
+      InMemoryBackupRunRepository.layer,
+      mockExecutorLayer,
+      InMemoryBackupRunDispatcher.layer,
+      Telemetry.layer
+    )
 
   private val seedJob = BackupJob(
     id = "myjob",
@@ -68,10 +72,19 @@ object BackupRunRoutesSpec extends ZIOSpecDefault:
             body <- response.body.asString
             startRun <- ZIO.fromEither(body.fromJson[StartRunResponse].left.map(error => new RuntimeException(error)))
             _ <- TestClock.adjust(3.seconds)
-            statusResponse <- BackupRunRoutes.routes.runZIO(Request.get(URL(Path.decode(s"/backup-runs/${startRun.runId}")))).provideEnvironment(env)
+            statusResponse <- BackupRunRoutes.routes
+              .runZIO(Request.get(URL(Path.decode(s"/backup-runs/${startRun.runId}"))))
+              .provideEnvironment(env)
             statusBody <- statusResponse.body.asString
-            run <- ZIO.fromEither(statusBody.fromJson[squirrelvault.domain.BackupRun].left.map(error => new RuntimeException(error)))
-          yield assertTrue(response.status == Status.Accepted, startRun.status == "PENDING", statusResponse.status == Status.Ok, run.status == "SUCCESS")
+            run <- ZIO.fromEither(
+              statusBody.fromJson[squirrelvault.domain.BackupRun].left.map(error => new RuntimeException(error))
+            )
+          yield assertTrue(
+            response.status == Status.Accepted,
+            startRun.status == "PENDING",
+            statusResponse.status == Status.Ok,
+            run.status == "SUCCESS"
+          )
         }
       }
     }

@@ -18,8 +18,7 @@ object InMemoryBackupRunDispatcher:
       for
         queue <- Queue.unbounded[(String, String)]
         executor <- ZIO.service[BackupExecutorService]
-        fiber <- queue
-          .take
+        fiber <- queue.take
           .flatMap { case (jobId, runId) =>
             executor
               .startRun(jobId, runId)

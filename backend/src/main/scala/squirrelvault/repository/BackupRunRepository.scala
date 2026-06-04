@@ -25,4 +25,5 @@ final class InMemoryBackupRunRepository(ref: Ref[Map[String, BackupRun]]) extend
   def listByJobId(jobId: String): Task[List[BackupRun]] = ref.get.map(_.values.filter(_.jobId == jobId).toList)
 
 object InMemoryBackupRunRepository:
-  val layer: ULayer[BackupRunRepository] = ZLayer.fromZIO(Ref.make(Map.empty[String, BackupRun]).map(new InMemoryBackupRunRepository(_)))
+  val layer: ULayer[BackupRunRepository] =
+    ZLayer.fromZIO(Ref.make(Map.empty[String, BackupRun]).map(new InMemoryBackupRunRepository(_)))

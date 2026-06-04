@@ -12,7 +12,11 @@ import zio.telemetry.opentelemetry.tracing.Tracing
 object BackupRunRoutes:
 
   private def jsonResponse(body: String, status: Status = Status.Ok): Response =
-    Response(status = status, headers = Headers(Header.ContentType(MediaType.application.json)), body = Body.fromString(body))
+    Response(
+      status = status,
+      headers = Headers(Header.ContentType(MediaType.application.json)),
+      body = Body.fromString(body)
+    )
 
   val routes: Routes[BackupRunRepository & BackupRunDispatcher & Tracing, Nothing] = Routes(
     Method.POST / "backup-jobs" / string("id") / "run" -> handler { (id: String, _: Request) =>
@@ -32,21 +36,27 @@ object BackupRunRoutes:
         }
       }
     },
-
     Method.GET / "backup-runs" / string("id") -> handler { (id: String, _: Request) =>
       ZIO.environment[BackupRunRepository & BackupRunDispatcher & Tracing].flatMap { env =>
         val repo = env.get[BackupRunRepository]
-        repo.findById(id).map {
-          case Some(run) => jsonResponse(run.toJson)
-          case None      => jsonResponse("{\"errors\":[\"not found\"]}", Status.NotFound)
-        }.mapError(err => jsonResponse(s"{\"errors\":[\"${err.getMessage}\"]}", Status.InternalServerError)).merge
+        repo
+          .findById(id)
+          .map {
+            case Some(run) => jsonResponse(run.toJson)
+            case None      => jsonResponse("{\"errors\":[\"not found\"]}", Status.NotFound)
+          }
+          .mapError(err => jsonResponse(s"{\"errors\":[\"${err.getMessage}\"]}", Status.InternalServerError))
+          .merge
       }
     },
-
     Method.GET / "backup-jobs" / string("id") / "runs" -> handler { (id: String, _: Request) =>
       ZIO.environment[BackupRunRepository & BackupRunDispatcher & Tracing].flatMap { env =>
         val repo = env.get[BackupRunRepository]
-        repo.listByJobId(id).map(runs => jsonResponse(runs.toJson)).mapError(err => jsonResponse(s"{\"errors\":[\"${err.getMessage}\"]}", Status.InternalServerError)).merge
+        repo
+          .listByJobId(id)
+          .map(runs => jsonResponse(runs.toJson))
+          .mapError(err => jsonResponse(s"{\"errors\":[\"${err.getMessage}\"]}", Status.InternalServerError))
+          .merge
       }
     }
   )
