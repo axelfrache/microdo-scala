@@ -13,11 +13,11 @@ final class InMemoryBackupRunDispatcher(queue: Queue[(String, String)]) extends 
   def enqueue(jobId: String, runId: String): Task[Unit] = queue.offer((jobId, runId)).unit
 
 object InMemoryBackupRunDispatcher:
-  val layer: URLayer[BackupExecutor, BackupRunDispatcher] =
+  val layer: URLayer[BackupExecutorService, BackupRunDispatcher] =
     ZLayer.scoped {
       for
         queue <- Queue.unbounded[(String, String)]
-        executor <- ZIO.service[BackupExecutor]
+        executor <- ZIO.service[BackupExecutorService]
         fiber <- queue
           .take
           .flatMap { case (jobId, runId) =>
