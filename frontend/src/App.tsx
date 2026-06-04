@@ -3,6 +3,7 @@ import { AppShell } from './components/AppShell'
 import { CreateBackupPage } from './pages/CreateBackupPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { HistoryPage } from './pages/HistoryPage'
+import { JobDetailPage } from './pages/JobDetailPage'
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/create" element={<CreateBackupPage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/jobs/:id" element={<JobDetailPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

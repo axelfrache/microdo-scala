@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PlusCircle, RefreshCw } from 'lucide-react'
-import { disableJob, listJobs, type BackupJob } from '../lib/api'
+import { Play, PlusCircle, RefreshCw } from 'lucide-react'
+import { disableJob, enableJob, listJobs, triggerRun, type BackupJob } from '../lib/api'
 
 export function DashboardPage() {
   const [jobs, setJobs] = useState<BackupJob[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState<Record<string, string>>({})
 
   const fetchJobs = async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await listJobs()
-      setJobs(data)
+      setJobs(await listJobs())
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unable to load jobs')
     } finally {
@@ -25,12 +25,15 @@ export function DashboardPage() {
     void fetchJobs()
   }, [])
 
-  const handleDisable = async (id: string) => {
+  const withPending = (id: string, action: string, fn: () => Promise<BackupJob | void>) => async () => {
+    setPending(p => ({ ...p, [id]: action }))
     try {
-      const updated = await disableJob(id)
-      setJobs(previous => previous.map(job => (job.id === id ? updated : job)))
+      const updated = await fn()
+      if (updated) setJobs(prev => prev.map(j => (j.id === id ? (updated as BackupJob) : j)))
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unable to disable job')
+      setError(err instanceof Error ? err.message : `Action failed`)
+    } finally {
+      setPending(p => { const next = { ...p }; delete next[id]; return next })
     }
   }
 
@@ -42,7 +45,7 @@ export function DashboardPage() {
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-cyan-950/20 backdrop-blur">
           <h1 className="mt-4 text-3xl font-semibold text-white md:text-4xl">Bienvenue sur SquirrelVault</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-            Cette application sert à créer, consulter et suivre tes jobs de sauvegarde ainsi que leur historique d’exécution.
+            Cette application sert à créer, consulter et suivre tes jobs de sauvegarde ainsi que leur historique d'exécution.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/create" className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200">
@@ -80,35 +83,67 @@ export function DashboardPage() {
       <div className="grid gap-4">
         {jobs.length === 0 && !loading ? (
           <div className="rounded-3xl border border-dashed border-white/15 bg-white/5 p-8 text-center text-slate-300">
-            Aucun backup actif pour l’instant.
+            Aucun backup pour l'instant.
           </div>
         ) : null}
 
-        {jobs.map(job => (
-          <article key={job.id} className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-lg shadow-black/20">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold text-white">{job.name}</h2>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${job.enabled ? 'bg-emerald-400/15 text-emerald-200' : 'bg-slate-500/20 text-slate-200'}`}>
-                    {job.enabled ? 'Actif' : 'Désactivé'}
-                  </span>
+        {jobs.map(job => {
+          const busy = pending[job.id]
+          return (
+            <article key={job.id} className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-lg shadow-black/20">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <Link to={`/jobs/${job.id}`} className="text-lg font-semibold text-white hover:text-cyan-200 transition">
+                      {job.name}
+                    </Link>
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${job.enabled ? 'bg-emerald-400/15 text-emerald-200' : 'bg-slate-500/20 text-slate-200'}`}>
+                      {job.enabled ? 'Actif' : 'Désactivé'}
+                    </span>
+                    {job.critical && (
+                      <span className="rounded-full bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-200">Critique</span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm text-slate-400">Source: {job.source}</p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
+                    <span className="rounded-full bg-white/5 px-3 py-1">{job.sourceType}</span>
+                    <span className="rounded-full bg-white/5 px-3 py-1">Bucket: {job.targetBucket}</span>
+                    <span className="rounded-full bg-white/5 px-3 py-1">Cron: {job.schedule}</span>
+                  </div>
                 </div>
-                <p className="mt-2 text-sm text-slate-400">Source: {job.source}</p>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
-                  <span className="rounded-full bg-white/5 px-3 py-1">{job.sourceType}</span>
-                  <span className="rounded-full bg-white/5 px-3 py-1">Bucket: {job.targetBucket}</span>
-                  <span className="rounded-full bg-white/5 px-3 py-1">Cron: {job.schedule}</span>
+                <div className="flex flex-wrap gap-2">
+                  {job.enabled && job.sourceType === 'PostgreSQL' && (
+                    <button
+                      disabled={!!busy}
+                      onClick={withPending(job.id, 'run', async () => { await triggerRun(job.id) })}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/20 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/30 disabled:opacity-50"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      {busy === 'run' ? 'Lancé…' : 'Lancer'}
+                    </button>
+                  )}
+                  {job.enabled ? (
+                    <button
+                      disabled={!!busy}
+                      onClick={withPending(job.id, 'disable', () => disableJob(job.id))}
+                      className="rounded-full bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/30 disabled:opacity-50"
+                    >
+                      {busy === 'disable' ? '…' : 'Désactiver'}
+                    </button>
+                  ) : (
+                    <button
+                      disabled={!!busy}
+                      onClick={withPending(job.id, 'enable', () => enableJob(job.id))}
+                      className="rounded-full bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/30 disabled:opacity-50"
+                    >
+                      {busy === 'enable' ? '…' : 'Activer'}
+                    </button>
+                  )}
                 </div>
               </div>
-              {job.enabled && (
-                <button onClick={() => handleDisable(job.id)} className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400">
-                  Désactiver
-                </button>
-              )}
-            </div>
-          </article>
-        ))}
+            </article>
+          )
+        })}
       </div>
     </section>
   )

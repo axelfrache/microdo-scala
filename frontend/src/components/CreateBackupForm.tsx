@@ -20,7 +20,7 @@ type FormState = {
 
 const INITIAL_STATE: FormState = {
   name: '',
-  sourceType: 'S3Bucket',
+  sourceType: 'PostgreSQL',
   source: '',
   targetBucket: '',
   targetPrefix: '',
@@ -71,12 +71,12 @@ export default function CreateBackupForm({ onCreated }: Props) {
         <label className="grid gap-1 text-sm text-slate-300">
           <span>Type de source</span>
           <select className={INPUT_CLASS} value={form.sourceType} onChange={e => set('sourceType', e.target.value as BackupJobSourceType)}>
-            <option>S3Bucket</option>
-            <option>PostgreSQL</option>
-            <option>MySQL</option>
-            <option>Filesystem</option>
-            <option>KubernetesPVC</option>
-            <option>ConfigFiles</option>
+            <option value="PostgreSQL">PostgreSQL</option>
+            <option value="MySQL" disabled>MySQL (bientôt)</option>
+            <option value="Filesystem" disabled>Filesystem (bientôt)</option>
+            <option value="KubernetesPVC" disabled>KubernetesPVC (bientôt)</option>
+            <option value="S3Bucket" disabled>S3Bucket (bientôt)</option>
+            <option value="ConfigFiles" disabled>ConfigFiles (bientôt)</option>
           </select>
         </label>
         <label className="grid gap-1 text-sm text-slate-300 md:col-span-2">

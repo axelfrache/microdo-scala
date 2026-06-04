@@ -8,6 +8,7 @@ trait BackupJobRepository:
   def findAll(enabled: Option[Boolean]): Task[List[BackupJob]]
   def findById(id: String): Task[Option[BackupJob]]
   def disable(id: String): Task[Option[BackupJob]]
+  def enable(id: String): Task[Option[BackupJob]]
 
 object BackupJobRepository:
   def save(job: BackupJob): RIO[BackupJobRepository, BackupJob] =
@@ -18,6 +19,8 @@ object BackupJobRepository:
     ZIO.serviceWithZIO(_.findById(id))
   def disable(id: String): RIO[BackupJobRepository, Option[BackupJob]] =
     ZIO.serviceWithZIO(_.disable(id))
+  def enable(id: String): RIO[BackupJobRepository, Option[BackupJob]] =
+    ZIO.serviceWithZIO(_.enable(id))
 
 final class InMemoryBackupJobRepository(ref: Ref[Map[String, BackupJob]]) extends BackupJobRepository:
   def save(job: BackupJob): Task[BackupJob] =
@@ -38,6 +41,15 @@ final class InMemoryBackupJobRepository(ref: Ref[Map[String, BackupJob]]) extend
         case None      => (None, jobs)
         case Some(job) =>
           val updated = job.copy(enabled = false)
+          (Some(updated), jobs.updated(id, updated))
+    }
+
+  def enable(id: String): Task[Option[BackupJob]] =
+    ref.modify { jobs =>
+      jobs.get(id) match
+        case None      => (None, jobs)
+        case Some(job) =>
+          val updated = job.copy(enabled = true)
           (Some(updated), jobs.updated(id, updated))
     }
 

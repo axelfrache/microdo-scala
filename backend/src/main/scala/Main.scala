@@ -6,7 +6,7 @@ import squirrelvault.service.BackupExecutor
 import squirrelvault.service.InMemoryBackupRunDispatcher
 import squirrelvault.service.BackupStorageConfig
 import squirrelvault.repository.PostgresBackupJobRepository
-import squirrelvault.service.BackupJobServiceImpl
+import squirrelvault.service.{BackupJobServiceImpl, BackupScheduler}
 import squirrelvault.telemetry.Telemetry
 import zio.*
 import zio.http.{Response, Server}
@@ -25,13 +25,12 @@ object Main extends ZIOAppDefault:
       dbPassword <- ZIO.succeed(sys.env.getOrElse("DB_PASSWORD", "squirrelvault"))
       _ <- ZIO.logInfo("Starting squirrelvault on port 8080")
       _ <- ZIO.logInfo(s"Connecting to PostgreSQL at $dbHost:$dbPort/$dbName")
-      result <- Server
-        .serve(
+      result <- (BackupScheduler.startBackground *>
+        Server.serve(
           ((HealthRoutes.routes ++ HelloRoutes.routes ++ PersonRoutes.routes)
             .handleError(_ => Response.internalServerError) ++
             BackupRunRoutes.routes ++ BackupJobRoutes.routes)
-        )
-        .provide(
+        )).provide(
           Server.defaultWithPort(8080),
           Telemetry.layer,
           Telemetry.loggingLayer,
@@ -43,6 +42,5 @@ object Main extends ZIOAppDefault:
           InMemoryBackupRunDispatcher.layer,
           ZConnectionPool.postgres(dbHost, dbPort, dbName, Map("user" -> dbUser, "password" -> dbPassword)),
           ZLayer.succeed(ZConnectionPoolConfig.default)
-        )
-        .tapError(e => ZIO.logError(s"Server error: ${e.getMessage}"))
+        ).tapError(e => ZIO.logError(s"Server error: ${e.getMessage}"))
     yield result

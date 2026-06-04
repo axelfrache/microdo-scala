@@ -38,6 +38,11 @@ export type BackupHistoryEntry = {
   run: BackupRun
 }
 
+export type RunStarted = {
+  runId: string
+  status: string
+}
+
 export type CreateBackupJobInput = {
   name: string
   sourceType: BackupJobSourceType
@@ -94,6 +99,21 @@ export async function getJob(id: string): Promise<BackupJob> {
 export async function disableJob(id: string): Promise<BackupJob> {
   const res = await fetchT(`${base}/backup-jobs/${id}/disable`, { method: 'PATCH' })
   if (!res.ok) throw new Error(`disableJob failed: ${res.status}`)
+  return res.json()
+}
+
+export async function enableJob(id: string): Promise<BackupJob> {
+  const res = await fetchT(`${base}/backup-jobs/${id}/enable`, { method: 'PATCH' })
+  if (!res.ok) throw new Error(`enableJob failed: ${res.status}`)
+  return res.json()
+}
+
+export async function triggerRun(jobId: string): Promise<RunStarted> {
+  const res = await fetchT(`${base}/backup-jobs/${jobId}/run`, { method: 'POST' })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`triggerRun failed: ${res.status} ${text}`)
+  }
   return res.json()
 }
 

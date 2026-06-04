@@ -83,5 +83,19 @@ object BackupJobRoutes:
             .merge
         }
       }
+    },
+    Method.PATCH / "backup-jobs" / string("id") / "enable" -> handler { (id: String, _: Request) =>
+      ZIO.serviceWithZIO[Tracing] { tracing =>
+        tracing.span("HTTP PATCH /backup-jobs/:id/enable") {
+          BackupJobService
+            .enable(id)
+            .map {
+              case Some(job) => jsonResponse(job.toJson)
+              case None      => notFound
+            }
+            .mapError(internalError)
+            .merge
+        }
+      }
     }
   )

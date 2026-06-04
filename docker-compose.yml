@@ -3,7 +3,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: squirrelvault-backend:local
+
     container_name: squirrelvault-backend
     environment:
       DB_HOST: ${DB_HOST}
@@ -30,7 +30,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: squirrelvault-frontend:local
+
     container_name: squirrelvault-frontend
     ports:
       - "80:80"

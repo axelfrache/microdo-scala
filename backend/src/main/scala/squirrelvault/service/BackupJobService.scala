@@ -13,6 +13,7 @@ trait BackupJobService:
   def list(enabled: Option[Boolean]): Task[List[BackupJob]]
   def findById(id: String): Task[Option[BackupJob]]
   def disable(id: String): Task[Option[BackupJob]]
+  def enable(id: String): Task[Option[BackupJob]]
 
 object BackupJobService:
   def create(req: CreateBackupJobRequest): ZIO[BackupJobService, ValidationErrorResponse, BackupJob] =
@@ -23,6 +24,8 @@ object BackupJobService:
     ZIO.serviceWithZIO(_.findById(id))
   def disable(id: String): RIO[BackupJobService, Option[BackupJob]] =
     ZIO.serviceWithZIO(_.disable(id))
+  def enable(id: String): RIO[BackupJobService, Option[BackupJob]] =
+    ZIO.serviceWithZIO(_.enable(id))
 
 final class BackupJobServiceImpl(repo: BackupJobRepository) extends BackupJobService:
   def create(req: CreateBackupJobRequest): IO[ValidationErrorResponse, BackupJob] =
@@ -46,8 +49,9 @@ final class BackupJobServiceImpl(repo: BackupJobRepository) extends BackupJobSer
       repo.save(job).mapError(e => ValidationErrorResponse(List(e.getMessage)))
 
   def list(enabled: Option[Boolean]): Task[List[BackupJob]] = repo.findAll(enabled)
-  def findById(id: String): Task[Option[BackupJob]] = repo.findById(id)
-  def disable(id: String): Task[Option[BackupJob]] = repo.disable(id)
+  def findById(id: String): Task[Option[BackupJob]]         = repo.findById(id)
+  def disable(id: String): Task[Option[BackupJob]]          = repo.disable(id)
+  def enable(id: String): Task[Option[BackupJob]]           = repo.enable(id)
 
 object BackupJobServiceImpl:
   val layer: URLayer[BackupJobRepository, BackupJobService] =
