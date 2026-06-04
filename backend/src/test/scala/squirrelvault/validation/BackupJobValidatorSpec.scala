@@ -47,6 +47,22 @@ object BackupJobValidatorSpec extends ZIOSpecDefault:
       val errors = BackupJobValidator.validate(valid.copy(schedule = ""))
       assertTrue(errors.contains("schedule must not be empty"))
     },
+    test("schedule with too few fields produces error") {
+      val errors = BackupJobValidator.validate(valid.copy(schedule = "0 2 * *"))
+      assertTrue(errors.contains("schedule must be a valid 5-field cron expression"))
+    },
+    test("schedule with spaces inside operators produces error") {
+      val errors = BackupJobValidator.validate(valid.copy(schedule = "0, 30 * * * *"))
+      assertTrue(errors.contains("schedule must be a valid 5-field cron expression"))
+    },
+    test("schedule with out of range minute produces error") {
+      val errors = BackupJobValidator.validate(valid.copy(schedule = "60 2 * * *"))
+      assertTrue(errors.contains("schedule must be a valid 5-field cron expression"))
+    },
+    test("schedule with month and day names passes validation") {
+      val errors = BackupJobValidator.validate(valid.copy(schedule = "0 2 * JAN MON"))
+      assertTrue(errors.isEmpty)
+    },
     test("retentionDays = 0 produces error") {
       val errors = BackupJobValidator.validate(valid.copy(retentionDays = 0))
       assertTrue(errors.contains("retentionDays must be greater than 0"))

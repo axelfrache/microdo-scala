@@ -23,6 +23,9 @@ object BackupJobRoutes:
   private def invalidJson(detail: String): Response =
     jsonResponse(ValidationErrorResponse(List(s"Invalid JSON: $detail")).toJson, Status.BadRequest)
 
+  private def validationError(response: ValidationErrorResponse): Response =
+    jsonResponse(response.toJson, Status.BadRequest)
+
   val routes: Routes[BackupJobService & Tracing, Nothing] = Routes(
     Method.POST / "backup-jobs" -> handler { (req: Request) =>
       ZIO.serviceWithZIO[Tracing] { tracing =>
@@ -34,7 +37,7 @@ object BackupJobRoutes:
               .mapError(invalidJson)
             result <- BackupJobService
               .create(createReq)
-              .mapError(err => jsonResponse(err.toJson, Status.BadRequest))
+              .mapError(validationError)
           yield jsonResponse(result.toJson, Status.Created)).merge
         }
       }
