@@ -54,8 +54,8 @@ export default function CreateBackupForm({ onCreated }: Props) {
       })
       onCreated(job)
       reset()
-    } catch (err: any) {
-      setError(err.message ?? String(err))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }

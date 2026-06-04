@@ -92,8 +92,8 @@ export function HistoryPage() {
         .sort((a, b) => b.sortAt - a.sortAt)
 
       setEntries(nextEntries)
-    } catch (err: any) {
-      setError(err.message ?? 'Unable to load history')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to load history')
     } finally {
       setLoading(false)
     }

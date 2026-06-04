@@ -14,8 +14,8 @@ export function DashboardPage() {
     try {
       const data = await listJobs()
       setJobs(data)
-    } catch (err: any) {
-      setError(err.message ?? 'Unable to load jobs')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to load jobs')
     } finally {
       setLoading(false)
     }
@@ -29,8 +29,8 @@ export function DashboardPage() {
     try {
       const updated = await disableJob(id)
       setJobs(previous => previous.map(job => (job.id === id ? updated : job)))
-    } catch (err: any) {
-      setError(err.message ?? 'Unable to disable job')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to disable job')
     }
   }
 
