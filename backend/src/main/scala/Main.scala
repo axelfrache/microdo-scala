@@ -30,7 +30,7 @@ object Main extends ZIOAppDefault:
         .serve(
           ((HealthRoutes.routes ++ HelloRoutes.routes ++ PersonRoutes.routes)
             .handleError(_ => Response.internalServerError) ++
-            BackupJobRoutes.routes ++ BackupRunRoutes.routes)
+            BackupRunRoutes.routes ++ BackupJobRoutes.routes)
         )
         .provide(
           Server.defaultWithPort(port),
