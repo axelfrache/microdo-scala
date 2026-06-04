@@ -30,7 +30,8 @@ object Main extends ZIOAppDefault:
           ((HealthRoutes.routes ++ HelloRoutes.routes ++ PersonRoutes.routes)
             .handleError(_ => Response.internalServerError) ++
             BackupRunRoutes.routes ++ BackupJobRoutes.routes)
-        )).provide(
+        ))
+        .provide(
           Server.defaultWithPort(8080),
           Telemetry.layer,
           Telemetry.loggingLayer,
@@ -42,5 +43,6 @@ object Main extends ZIOAppDefault:
           InMemoryBackupRunDispatcher.layer,
           ZConnectionPool.postgres(dbHost, dbPort, dbName, Map("user" -> dbUser, "password" -> dbPassword)),
           ZLayer.succeed(ZConnectionPoolConfig.default)
-        ).tapError(e => ZIO.logError(s"Server error: ${e.getMessage}"))
+        )
+        .tapError(e => ZIO.logError(s"Server error: ${e.getMessage}"))
     yield result

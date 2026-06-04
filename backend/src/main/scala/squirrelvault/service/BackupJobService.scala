@@ -49,9 +49,9 @@ final class BackupJobServiceImpl(repo: BackupJobRepository) extends BackupJobSer
       repo.save(job).mapError(e => ValidationErrorResponse(List(e.getMessage)))
 
   def list(enabled: Option[Boolean]): Task[List[BackupJob]] = repo.findAll(enabled)
-  def findById(id: String): Task[Option[BackupJob]]         = repo.findById(id)
-  def disable(id: String): Task[Option[BackupJob]]          = repo.disable(id)
-  def enable(id: String): Task[Option[BackupJob]]           = repo.enable(id)
+  def findById(id: String): Task[Option[BackupJob]] = repo.findById(id)
+  def disable(id: String): Task[Option[BackupJob]] = repo.disable(id)
+  def enable(id: String): Task[Option[BackupJob]] = repo.enable(id)
 
 object BackupJobServiceImpl:
   val layer: URLayer[BackupJobRepository, BackupJobService] =

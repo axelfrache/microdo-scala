@@ -77,7 +77,7 @@ final class PostgresBackupJobRepository(pool: ZConnectionPool) extends BackupJob
   def disable(id: String): Task[Option[BackupJob]] =
     transaction {
       for
-        _      <- sql"UPDATE backup_jobs SET enabled = false WHERE id = $id".execute
+        _ <- sql"UPDATE backup_jobs SET enabled = false WHERE id = $id".execute
         result <- (selectAll ++ sql" WHERE id = $id").query[BackupJob].selectOne
       yield result
     }.provide(ZLayer.succeed(pool))
@@ -85,7 +85,7 @@ final class PostgresBackupJobRepository(pool: ZConnectionPool) extends BackupJob
   def enable(id: String): Task[Option[BackupJob]] =
     transaction {
       for
-        _      <- sql"UPDATE backup_jobs SET enabled = true WHERE id = $id".execute
+        _ <- sql"UPDATE backup_jobs SET enabled = true WHERE id = $id".execute
         result <- (selectAll ++ sql" WHERE id = $id").query[BackupJob].selectOne
       yield result
     }.provide(ZLayer.succeed(pool))
