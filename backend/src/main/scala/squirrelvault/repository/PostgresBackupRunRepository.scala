@@ -92,6 +92,11 @@ final class PostgresBackupRunRepository(pool: ZConnectionPool) extends BackupRun
       (selectAll ++ sql" WHERE job_id = $jobId ORDER BY created_at DESC").query[BackupRun].selectAll
     }.map(_.toList).provide(ZLayer.succeed(pool))
 
+  def listAll(): Task[List[BackupRun]] =
+    transaction {
+      (selectAll ++ sql" ORDER BY created_at DESC").query[BackupRun].selectAll
+    }.map(_.toList).provide(ZLayer.succeed(pool))
+
 object PostgresBackupRunRepository:
   val layer: RLayer[ZConnectionPool, BackupRunRepository] =
     ZLayer {

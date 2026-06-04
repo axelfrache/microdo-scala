@@ -8,12 +8,14 @@ trait BackupRunRepository:
   def update(run: BackupRun): Task[BackupRun]
   def findById(id: String): Task[Option[BackupRun]]
   def listByJobId(jobId: String): Task[List[BackupRun]]
+  def listAll(): Task[List[BackupRun]]
 
 object BackupRunRepository:
   def create(run: BackupRun): RIO[BackupRunRepository, BackupRun] = ZIO.serviceWithZIO(_.create(run))
   def update(run: BackupRun): RIO[BackupRunRepository, BackupRun] = ZIO.serviceWithZIO(_.update(run))
   def findById(id: String): RIO[BackupRunRepository, Option[BackupRun]] = ZIO.serviceWithZIO(_.findById(id))
   def listByJobId(jobId: String): RIO[BackupRunRepository, List[BackupRun]] = ZIO.serviceWithZIO(_.listByJobId(jobId))
+  def listAll(): RIO[BackupRunRepository, List[BackupRun]] = ZIO.serviceWithZIO(_.listAll())
 
 final class InMemoryBackupRunRepository(ref: Ref[Map[String, BackupRun]]) extends BackupRunRepository:
   def create(run: BackupRun): Task[BackupRun] = ref.update(_.updated(run.id, run)).as(run)
@@ -23,6 +25,8 @@ final class InMemoryBackupRunRepository(ref: Ref[Map[String, BackupRun]]) extend
   def findById(id: String): Task[Option[BackupRun]] = ref.get.map(_.get(id))
 
   def listByJobId(jobId: String): Task[List[BackupRun]] = ref.get.map(_.values.filter(_.jobId == jobId).toList)
+
+  def listAll(): Task[List[BackupRun]] = ref.get.map(_.values.toList)
 
 object InMemoryBackupRunRepository:
   val layer: ULayer[BackupRunRepository] =
