@@ -6,6 +6,7 @@ val zioJsonVersion     = "0.7.3"
 val zioJdbcVersion     = "0.1.2"
 val zioTelemetryVersion = "3.1.0"
 val otelVersion         = "1.43.0"
+val minioVersion        = "8.5.13"
 
 lazy val root = project
   .in(file("."))
@@ -22,6 +23,7 @@ lazy val root = project
       "com.softwaremill.sttp.tapir" %% "tapir-json-zio"        % tapirVersion,
       "dev.zio"                     %% "zio-jdbc"              % zioJdbcVersion,
       "org.postgresql"              %  "postgresql"            % "42.7.3",
+      "io.minio"                   %  "minio"                  % minioVersion,
       "dev.zio"                     %% "zio-opentelemetry"     % zioTelemetryVersion,
       "io.opentelemetry"            %  "opentelemetry-sdk"     % otelVersion,
       "io.opentelemetry"            %  "opentelemetry-exporter-otlp" % otelVersion,

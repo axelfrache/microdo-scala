@@ -11,6 +11,9 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}
     ports:
@@ -51,6 +54,24 @@ services:
       timeout: 5s
       retries: 10
 
+  questify-db:
+    image: postgres:16-alpine
+    container_name: questify-db
+    environment:
+      POSTGRES_DB: questify-db
+      POSTGRES_USER: questify-db
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - questify-db-data:/var/lib/postgresql/data
+      - ./docker/questify-db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U questify-db -d questify-db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   minio:
     image: minio/minio:latest
     container_name: squirrelvault-minio
@@ -76,3 +97,4 @@ services:
 volumes:
   postgres-data:
   minio-data:
+  questify-db-data:

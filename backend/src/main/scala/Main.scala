@@ -1,5 +1,10 @@
 import squirrelvault.api.{HealthRoutes, HelloRoutes, PersonRoutes}
 import squirrelvault.api.BackupJobRoutes
+import squirrelvault.api.BackupRunRoutes
+import squirrelvault.repository.PostgresBackupRunRepository
+import squirrelvault.service.BackupExecutor
+import squirrelvault.service.InMemoryBackupRunDispatcher
+import squirrelvault.service.BackupStorageConfig
 import squirrelvault.repository.PostgresBackupJobRepository
 import squirrelvault.service.BackupJobServiceImpl
 import squirrelvault.telemetry.Telemetry
@@ -23,9 +28,9 @@ object Main extends ZIOAppDefault:
       _ <- ZIO.logInfo(s"Connecting to PostgreSQL at $dbHost:$dbPort/$dbName")
       result <- Server
         .serve(
-          (HealthRoutes.routes ++ HelloRoutes.routes ++ PersonRoutes.routes)
+          ((HealthRoutes.routes ++ HelloRoutes.routes ++ PersonRoutes.routes)
             .handleError(_ => Response.internalServerError) ++
-            BackupJobRoutes.routes
+            BackupJobRoutes.routes ++ BackupRunRoutes.routes)
         )
         .provide(
           Server.defaultWithPort(port),
@@ -34,6 +39,10 @@ object Main extends ZIOAppDefault:
           Telemetry.sdkLayer,
           BackupJobServiceImpl.layer,
           PostgresBackupJobRepository.layer,
+          PostgresBackupRunRepository.layer,
+          BackupStorageConfig.layer,
+          BackupExecutor.layer,
+          InMemoryBackupRunDispatcher.layer,
           ZConnectionPool.postgres(dbHost, dbPort, dbName, Map("user" -> dbUser, "password" -> dbPassword)),
           ZLayer.succeed(ZConnectionPoolConfig.default)
         )
