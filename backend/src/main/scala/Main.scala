@@ -14,29 +14,26 @@ import zio.jdbc.{ZConnectionPool, ZConnectionPoolConfig}
 
 object Main extends ZIOAppDefault:
 
-  private val port = 8080
-
-  private val dbHost = sys.env.getOrElse("DB_HOST", "localhost")
-  private val dbPort = sys.env.getOrElse("DB_PORT", "5432").toInt
-  private val dbName = sys.env.getOrElse("DB_NAME", "squirrelvault")
-  private val dbUser = sys.env.getOrElse("DB_USER", "squirrelvault")
-  private val dbPassword = sys.env.getOrElse("DB_PASSWORD", "squirrelvault")
-
   override def run: Task[Nothing] =
     for
-      _ <- ZIO.logInfo(s"Starting squirrelvault on port $port")
-      _ <- ZIO.logInfo(s"Connecting to PostgreSQL at $dbHost:$dbPort/$dbName")
-      result <- Server
+      dbHost     <- ZIO.succeed(sys.env.getOrElse("DB_HOST", "localhost"))
+      dbPort     <- ZIO.attempt(sys.env.getOrElse("DB_PORT", "5432").toInt)
+                      .mapError(e => new RuntimeException(s"Invalid DB_PORT: ${e.getMessage}"))
+      dbName     <- ZIO.succeed(sys.env.getOrElse("DB_NAME", "squirrelvault"))
+      dbUser     <- ZIO.succeed(sys.env.getOrElse("DB_USER", "squirrelvault"))
+      dbPassword <- ZIO.succeed(sys.env.getOrElse("DB_PASSWORD", "squirrelvault"))
+      _          <- ZIO.logInfo("Starting squirrelvault on port 8080")
+      _          <- ZIO.logInfo(s"Connecting to PostgreSQL at $dbHost:$dbPort/$dbName")
+      result     <- Server
         .serve(
           ((HealthRoutes.routes ++ HelloRoutes.routes ++ PersonRoutes.routes)
             .handleError(_ => Response.internalServerError) ++
             BackupRunRoutes.routes ++ BackupJobRoutes.routes)
         )
         .provide(
-          Server.defaultWithPort(port),
+          Server.defaultWithPort(8080),
           Telemetry.layer,
           Telemetry.loggingLayer,
-          Telemetry.sdkLayer,
           BackupJobServiceImpl.layer,
           PostgresBackupJobRepository.layer,
           PostgresBackupRunRepository.layer,

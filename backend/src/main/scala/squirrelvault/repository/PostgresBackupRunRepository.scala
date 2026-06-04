@@ -1,6 +1,6 @@
 package squirrelvault.repository
 
-import squirrelvault.domain.BackupRun
+import squirrelvault.domain.{BackupRun, RunStatus}
 import zio.*
 import zio.jdbc.*
 import java.sql.ResultSet
@@ -17,7 +17,7 @@ final class PostgresBackupRunRepository(pool: ZConnectionPool) extends BackupRun
         BackupRun(
           id = rs.getString("id"),
           jobId = rs.getString("job_id"),
-          status = rs.getString("status"),
+          status = RunStatus.fromDb(rs.getString("status")),
           startedAt = Option(rs.getTimestamp("started_at")).map(_.toInstant),
           finishedAt = Option(rs.getTimestamp("finished_at")).map(_.toInstant),
           duration = readLong("duration", rs),
@@ -55,7 +55,7 @@ final class PostgresBackupRunRepository(pool: ZConnectionPool) extends BackupRun
         INSERT INTO backup_runs
           (id, job_id, status, started_at, finished_at, duration, size_mb, location, error)
         VALUES
-          (${run.id}, ${run.jobId}, ${run.status},
+          (${run.id}, ${run.jobId}, ${RunStatus.toDb(run.status)},
            ${run.startedAt.map(java.sql.Timestamp.from)},
            ${run.finishedAt.map(java.sql.Timestamp.from)},
            ${run.duration},
@@ -70,7 +70,7 @@ final class PostgresBackupRunRepository(pool: ZConnectionPool) extends BackupRun
       sql"""
         UPDATE backup_runs
         SET job_id = ${run.jobId},
-            status = ${run.status},
+            status = ${RunStatus.toDb(run.status)},
             started_at = ${run.startedAt.map(java.sql.Timestamp.from)},
             finished_at = ${run.finishedAt.map(java.sql.Timestamp.from)},
             duration = ${run.duration},

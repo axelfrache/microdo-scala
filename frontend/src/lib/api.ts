@@ -1,7 +1,15 @@
+export type BackupJobSourceType =
+  | 'PostgreSQL'
+  | 'MySQL'
+  | 'Filesystem'
+  | 'KubernetesPVC'
+  | 'S3Bucket'
+  | 'ConfigFiles'
+
 export type BackupJob = {
   id: string
   name: string
-  sourceType: string
+  sourceType: BackupJobSourceType
   source: string
   targetBucket: string
   targetPrefix: string
@@ -30,14 +38,6 @@ export type BackupHistoryEntry = {
   run: BackupRun
 }
 
-export type BackupJobSourceType =
-  | 'PostgreSQL'
-  | 'MySQL'
-  | 'Filesystem'
-  | 'KubernetesPVC'
-  | 'S3Bucket'
-  | 'ConfigFiles'
-
 export type CreateBackupJobInput = {
   name: string
   sourceType: BackupJobSourceType
@@ -52,17 +52,28 @@ export type CreateBackupJobInput = {
 }
 
 const base = '/api'
+const TIMEOUT_MS = 10_000
+
+async function fetchT(url: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  try {
+    return await fetch(url, { ...options, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 export async function listJobs(enabled?: boolean): Promise<BackupJob[]> {
   const url = new URL(`${base}/backup-jobs`, window.location.href)
   if (enabled !== undefined) url.searchParams.set('enabled', String(enabled))
-  const res = await fetch(url.toString())
+  const res = await fetchT(url.toString())
   if (!res.ok) throw new Error(`listJobs failed: ${res.status}`)
   return res.json()
 }
 
 export async function createJob(body: CreateBackupJobInput): Promise<BackupJob> {
-  const res = await fetch(`${base}/backup-jobs`, {
+  const res = await fetchT(`${base}/backup-jobs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -75,25 +86,25 @@ export async function createJob(body: CreateBackupJobInput): Promise<BackupJob> 
 }
 
 export async function getJob(id: string): Promise<BackupJob> {
-  const res = await fetch(`${base}/backup-jobs/${id}`)
+  const res = await fetchT(`${base}/backup-jobs/${id}`)
   if (!res.ok) throw new Error(`getJob failed: ${res.status}`)
   return res.json()
 }
 
 export async function disableJob(id: string): Promise<BackupJob> {
-  const res = await fetch(`${base}/backup-jobs/${id}/disable`, { method: 'PATCH' })
+  const res = await fetchT(`${base}/backup-jobs/${id}/disable`, { method: 'PATCH' })
   if (!res.ok) throw new Error(`disableJob failed: ${res.status}`)
   return res.json()
 }
 
 export async function listRunsForJob(jobId: string): Promise<BackupRun[]> {
-  const res = await fetch(`${base}/backup-jobs/${jobId}/runs`)
+  const res = await fetchT(`${base}/backup-jobs/${jobId}/runs`)
   if (!res.ok) throw new Error(`listRunsForJob failed: ${res.status}`)
   return res.json()
 }
 
 export async function listHistory(): Promise<BackupHistoryEntry[]> {
-  const res = await fetch(`${base}/backup-history`)
+  const res = await fetchT(`${base}/backup-history`)
   if (!res.ok) throw new Error(`listHistory failed: ${res.status}`)
   return res.json()
 }

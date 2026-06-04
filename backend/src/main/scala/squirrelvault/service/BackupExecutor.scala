@@ -1,8 +1,7 @@
 package squirrelvault.service
 
 import io.minio.{BucketExistsArgs, MakeBucketArgs, MinioClient, UploadObjectArgs}
-import squirrelvault.domain.BackupRun
-import squirrelvault.domain.{BackupJob, SourceType}
+import squirrelvault.domain.{BackupJob, BackupRun, RunStatus, SourceType}
 import squirrelvault.repository.{BackupJobRepository, BackupRunRepository}
 import zio.*
 
@@ -24,33 +23,34 @@ object BackupExecutor:
         jobRepository <- ZIO.service[BackupJobRepository]
         runRepository <- ZIO.service[BackupRunRepository]
         storageConfig <- ZIO.service[BackupStorageConfig]
-      yield new BackupExecutor(jobRepository, runRepository, storageConfig)
+        minioClient   <- ZIO.attempt(
+          MinioClient
+            .builder()
+            .endpoint(storageConfig.endpoint)
+            .credentials(storageConfig.accessKey, storageConfig.secretKey)
+            .build()
+        )
+      yield new BackupExecutor(jobRepository, runRepository, minioClient)
     }
 
 final class BackupExecutor(
     jobRepository: BackupJobRepository,
     runRepository: BackupRunRepository,
-    storageConfig: BackupStorageConfig
+    minioClient: MinioClient
 ) extends BackupExecutorService:
 
   def startRun(jobId: String, runId: String): Task[Unit] =
     for
       startedAt <- Clock.instant
-      _ <- updateRun(runId, jobId, "RUNNING", Some(startedAt), None, None, None, None, None)
+      _ <- runRepository.update(
+        BackupRun(runId, jobId, RunStatus.Running, Some(startedAt), None, None, None, None, None)
+      )
       outcome <- runBackup(jobId, runId, startedAt).catchAll { error =>
         for
           finishedAt <- Clock.instant
-          durationMs = Duration.between(startedAt, finishedAt).toMillis
-          _ <- updateRun(
-            runId,
-            jobId,
-            "FAILED",
-            Some(startedAt),
-            Some(finishedAt),
-            Some(durationMs),
-            None,
-            None,
-            Some(error.getMessage)
+          durationMs  = Duration.between(startedAt, finishedAt).toMillis
+          _ <- runRepository.update(
+            BackupRun(runId, jobId, RunStatus.Failed, Some(startedAt), Some(finishedAt), Some(durationMs), None, None, Some(error.getMessage))
           )
         yield ()
       }
@@ -68,20 +68,12 @@ final class BackupExecutor(
           cleanupTempFile
         )
         _ <- runPgDump(job.source, dumpFile)
-        sizeBytes <- ZIO.attemptBlocking(Files.size(dumpFile))
-        location <- uploadToMinio(job, runId, dumpFile)
+        sizeBytes  <- ZIO.attemptBlocking(Files.size(dumpFile))
+        location   <- uploadToMinio(job, runId, dumpFile)
         finishedAt <- Clock.instant
-        durationMs = Duration.between(startedAt, finishedAt).toMillis
-        _ <- updateRun(
-          runId,
-          jobId,
-          "SUCCESS",
-          Some(startedAt),
-          Some(finishedAt),
-          Some(durationMs),
-          Some(sizeBytes / (1024L * 1024L)),
-          Some(location),
-          None
+        durationMs  = Duration.between(startedAt, finishedAt).toMillis
+        _ <- runRepository.update(
+          BackupRun(runId, jobId, RunStatus.Success, Some(startedAt), Some(finishedAt), Some(durationMs), Some(sizeBytes / (1024L * 1024L)), Some(location), None)
         )
       yield ()
     }
@@ -89,7 +81,7 @@ final class BackupExecutor(
   private def validateJob(job: BackupJob): Task[Unit] =
     job.sourceType match
       case SourceType.PostgreSQL => ZIO.unit
-      case other => ZIO.fail(new IllegalArgumentException(s"Unsupported source type for backup: $other"))
+      case other                 => ZIO.fail(new IllegalArgumentException(s"Unsupported source type for backup: $other"))
 
   private def runPgDump(source: String, dumpFile: Path): Task[Unit] =
     ZIO.attemptBlocking {
@@ -110,9 +102,8 @@ final class BackupExecutor(
       ) ++ connection.port.map(port => List("--port", port.toString)).getOrElse(Nil)
 
       val processBuilder = new ProcessBuilder(command*)
-      connection.password.foreach(password => processBuilder.environment().put("PGPASSWORD", password))
-      val process = processBuilder.redirectErrorStream(true).start()
-
+      connection.password.foreach(pw => processBuilder.environment().put("PGPASSWORD", pw))
+      val process  = processBuilder.redirectErrorStream(true).start()
       val exitCode = process.waitFor()
       if exitCode != 0 then
         val output = new String(process.getInputStream.readAllBytes(), StandardCharsets.UTF_8)
@@ -128,17 +119,16 @@ final class BackupExecutor(
   )
 
   private def parsePostgresSource(source: String): PostgresConnection =
-    val uri = URI.create(source)
+    val uri    = URI.create(source)
     val scheme = Option(uri.getScheme).map(_.toLowerCase)
-    val host = Option(uri.getHost).getOrElse("")
-    val userInfo = Option(uri.getUserInfo)
-    val path = Option(uri.getPath).getOrElse("")
+    val host   = Option(uri.getHost).getOrElse("")
+    val path   = Option(uri.getPath).getOrElse("")
     val database = if path.nonEmpty && path != "/" then path.stripPrefix("/") else host
-    val (user, password) = userInfo match
+    val (user, password) = Option(uri.getUserInfo) match
       case Some(value) if value.contains(":") =>
         value.split(":", 2) match
-          case Array(rawUser, rawPassword) => (rawUser, Some(rawPassword))
-          case Array(rawUser)              => (rawUser, None)
+          case Array(u, p) => (u, Some(p))
+          case Array(u)    => (u, None)
       case Some(value) if value.nonEmpty => (value, None)
       case _                             => (host, None)
 
@@ -155,17 +145,11 @@ final class BackupExecutor(
 
   private def uploadToMinio(job: BackupJob, runId: String, dumpFile: Path): Task[String] =
     ZIO.attemptBlocking {
-      val client = MinioClient
-        .builder()
-        .endpoint(storageConfig.endpoint)
-        .credentials(storageConfig.accessKey, storageConfig.secretKey)
-        .build()
-
-      if !client.bucketExists(BucketExistsArgs.builder().bucket(job.targetBucket).build()) then
-        client.makeBucket(MakeBucketArgs.builder().bucket(job.targetBucket).build())
+      if !minioClient.bucketExists(BucketExistsArgs.builder().bucket(job.targetBucket).build()) then
+        minioClient.makeBucket(MakeBucketArgs.builder().bucket(job.targetBucket).build())
 
       val objectName = buildObjectName(job.targetPrefix, runId)
-      client.uploadObject(
+      minioClient.uploadObject(
         UploadObjectArgs
           .builder()
           .bucket(job.targetBucket)
@@ -179,20 +163,6 @@ final class BackupExecutor(
   private def buildObjectName(prefix: String, runId: String): String =
     val cleanPrefix = prefix.stripSuffix("/")
     if cleanPrefix.isBlank then s"$runId.dump" else s"$cleanPrefix/$runId.dump"
-
-  private def updateRun(
-      runId: String,
-      jobId: String,
-      status: String,
-      startedAt: Option[Instant],
-      finishedAt: Option[Instant],
-      duration: Option[Long],
-      sizeMb: Option[Long],
-      location: Option[String],
-      error: Option[String]
-  ): Task[BackupRun] =
-    val existing = BackupRun(runId, jobId, status, startedAt, finishedAt, duration, sizeMb, location, error)
-    runRepository.update(existing)
 
   private def cleanupTempFile(file: Path): UIO[Unit] =
     ZIO.attemptBlocking(Files.deleteIfExists(file)).ignore

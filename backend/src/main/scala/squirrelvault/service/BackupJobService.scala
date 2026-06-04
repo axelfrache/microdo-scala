@@ -10,18 +10,18 @@ import java.util.UUID
 
 trait BackupJobService:
   def create(req: CreateBackupJobRequest): IO[ValidationErrorResponse, BackupJob]
-  def list(enabled: Option[Boolean]): UIO[List[BackupJob]]
-  def findById(id: String): UIO[Option[BackupJob]]
-  def disable(id: String): UIO[Option[BackupJob]]
+  def list(enabled: Option[Boolean]): Task[List[BackupJob]]
+  def findById(id: String): Task[Option[BackupJob]]
+  def disable(id: String): Task[Option[BackupJob]]
 
 object BackupJobService:
   def create(req: CreateBackupJobRequest): ZIO[BackupJobService, ValidationErrorResponse, BackupJob] =
     ZIO.serviceWithZIO(_.create(req))
-  def list(enabled: Option[Boolean]): URIO[BackupJobService, List[BackupJob]] =
+  def list(enabled: Option[Boolean]): RIO[BackupJobService, List[BackupJob]] =
     ZIO.serviceWithZIO(_.list(enabled))
-  def findById(id: String): URIO[BackupJobService, Option[BackupJob]] =
+  def findById(id: String): RIO[BackupJobService, Option[BackupJob]] =
     ZIO.serviceWithZIO(_.findById(id))
-  def disable(id: String): URIO[BackupJobService, Option[BackupJob]] =
+  def disable(id: String): RIO[BackupJobService, Option[BackupJob]] =
     ZIO.serviceWithZIO(_.disable(id))
 
 final class BackupJobServiceImpl(repo: BackupJobRepository) extends BackupJobService:
@@ -43,11 +43,11 @@ final class BackupJobServiceImpl(repo: BackupJobRepository) extends BackupJobSer
         enabled = req.enabled,
         createdAt = Instant.now()
       )
-      repo.save(job).orDie
+      repo.save(job).mapError(e => ValidationErrorResponse(List(e.getMessage)))
 
-  def list(enabled: Option[Boolean]): UIO[List[BackupJob]] = repo.findAll(enabled).orDie
-  def findById(id: String): UIO[Option[BackupJob]] = repo.findById(id).orDie
-  def disable(id: String): UIO[Option[BackupJob]] = repo.disable(id).orDie
+  def list(enabled: Option[Boolean]): Task[List[BackupJob]] = repo.findAll(enabled)
+  def findById(id: String): Task[Option[BackupJob]]         = repo.findById(id)
+  def disable(id: String): Task[Option[BackupJob]]          = repo.disable(id)
 
 object BackupJobServiceImpl:
   val layer: URLayer[BackupJobRepository, BackupJobService] =

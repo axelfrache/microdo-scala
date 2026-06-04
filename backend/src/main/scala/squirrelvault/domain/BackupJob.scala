@@ -2,7 +2,7 @@ package squirrelvault.domain
 
 import zio.json.*
 import java.time.Instant
-import scala.util.Try
+import CommonCodecs.given
 
 final case class BackupJob(
     id: String,
@@ -20,8 +20,4 @@ final case class BackupJob(
 )
 
 object BackupJob:
-  given JsonDecoder[Instant] = JsonDecoder.string.mapOrFail(s => Try(Instant.parse(s)).toEither.left.map(_.getMessage))
-  given JsonEncoder[Instant] = JsonEncoder.string.contramap(_.toString)
-  given JsonCodec[Instant] = JsonCodec(JsonEncoder[Instant], JsonDecoder[Instant])
-
   given JsonCodec[BackupJob] = DeriveJsonCodec.gen[BackupJob]

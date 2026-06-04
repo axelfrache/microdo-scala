@@ -20,6 +20,9 @@ object BackupJobRoutes:
   private def notFound: Response =
     jsonResponse(ValidationErrorResponse(List("not found")).toJson, Status.NotFound)
 
+  private def internalError(err: Throwable): Response =
+    jsonResponse(ValidationErrorResponse(List(err.getMessage)).toJson, Status.InternalServerError)
+
   private def invalidJson(detail: String): Response =
     jsonResponse(ValidationErrorResponse(List(s"Invalid JSON: $detail")).toJson, Status.BadRequest)
 
@@ -49,7 +52,7 @@ object BackupJobRoutes:
             case "true"  => true
             case "false" => false
           }
-          BackupJobService.list(enabledFilter).map(jobs => jsonResponse(jobs.toJson))
+          BackupJobService.list(enabledFilter).map(jobs => jsonResponse(jobs.toJson)).mapError(internalError).merge
         }
       }
     },
@@ -59,7 +62,7 @@ object BackupJobRoutes:
           BackupJobService.findById(id).map {
             case Some(job) => jsonResponse(job.toJson)
             case None      => notFound
-          }
+          }.mapError(internalError).merge
         }
       }
     },
@@ -69,7 +72,7 @@ object BackupJobRoutes:
           BackupJobService.disable(id).map {
             case Some(job) => jsonResponse(job.toJson)
             case None      => notFound
-          }
+          }.mapError(internalError).merge
         }
       }
     }
