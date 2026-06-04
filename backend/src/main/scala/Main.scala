@@ -16,15 +16,16 @@ object Main extends ZIOAppDefault:
 
   override def run: Task[Nothing] =
     for
-      dbHost     <- ZIO.succeed(sys.env.getOrElse("DB_HOST", "localhost"))
-      dbPort     <- ZIO.attempt(sys.env.getOrElse("DB_PORT", "5432").toInt)
-                      .mapError(e => new RuntimeException(s"Invalid DB_PORT: ${e.getMessage}"))
-      dbName     <- ZIO.succeed(sys.env.getOrElse("DB_NAME", "squirrelvault"))
-      dbUser     <- ZIO.succeed(sys.env.getOrElse("DB_USER", "squirrelvault"))
+      dbHost <- ZIO.succeed(sys.env.getOrElse("DB_HOST", "localhost"))
+      dbPort <- ZIO
+        .attempt(sys.env.getOrElse("DB_PORT", "5432").toInt)
+        .mapError(e => new RuntimeException(s"Invalid DB_PORT: ${e.getMessage}"))
+      dbName <- ZIO.succeed(sys.env.getOrElse("DB_NAME", "squirrelvault"))
+      dbUser <- ZIO.succeed(sys.env.getOrElse("DB_USER", "squirrelvault"))
       dbPassword <- ZIO.succeed(sys.env.getOrElse("DB_PASSWORD", "squirrelvault"))
-      _          <- ZIO.logInfo("Starting squirrelvault on port 8080")
-      _          <- ZIO.logInfo(s"Connecting to PostgreSQL at $dbHost:$dbPort/$dbName")
-      result     <- Server
+      _ <- ZIO.logInfo("Starting squirrelvault on port 8080")
+      _ <- ZIO.logInfo(s"Connecting to PostgreSQL at $dbHost:$dbPort/$dbName")
+      result <- Server
         .serve(
           ((HealthRoutes.routes ++ HelloRoutes.routes ++ PersonRoutes.routes)
             .handleError(_ => Response.internalServerError) ++

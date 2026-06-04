@@ -23,7 +23,7 @@ object BackupExecutor:
         jobRepository <- ZIO.service[BackupJobRepository]
         runRepository <- ZIO.service[BackupRunRepository]
         storageConfig <- ZIO.service[BackupStorageConfig]
-        minioClient   <- ZIO.attempt(
+        minioClient <- ZIO.attempt(
           MinioClient
             .builder()
             .endpoint(storageConfig.endpoint)
@@ -48,9 +48,19 @@ final class BackupExecutor(
       outcome <- runBackup(jobId, runId, startedAt).catchAll { error =>
         for
           finishedAt <- Clock.instant
-          durationMs  = Duration.between(startedAt, finishedAt).toMillis
+          durationMs = Duration.between(startedAt, finishedAt).toMillis
           _ <- runRepository.update(
-            BackupRun(runId, jobId, RunStatus.Failed, Some(startedAt), Some(finishedAt), Some(durationMs), None, None, Some(error.getMessage))
+            BackupRun(
+              runId,
+              jobId,
+              RunStatus.Failed,
+              Some(startedAt),
+              Some(finishedAt),
+              Some(durationMs),
+              None,
+              None,
+              Some(error.getMessage)
+            )
           )
         yield ()
       }
@@ -68,12 +78,22 @@ final class BackupExecutor(
           cleanupTempFile
         )
         _ <- runPgDump(job.source, dumpFile)
-        sizeBytes  <- ZIO.attemptBlocking(Files.size(dumpFile))
-        location   <- uploadToMinio(job, runId, dumpFile)
+        sizeBytes <- ZIO.attemptBlocking(Files.size(dumpFile))
+        location <- uploadToMinio(job, runId, dumpFile)
         finishedAt <- Clock.instant
-        durationMs  = Duration.between(startedAt, finishedAt).toMillis
+        durationMs = Duration.between(startedAt, finishedAt).toMillis
         _ <- runRepository.update(
-          BackupRun(runId, jobId, RunStatus.Success, Some(startedAt), Some(finishedAt), Some(durationMs), Some(sizeBytes / (1024L * 1024L)), Some(location), None)
+          BackupRun(
+            runId,
+            jobId,
+            RunStatus.Success,
+            Some(startedAt),
+            Some(finishedAt),
+            Some(durationMs),
+            Some(sizeBytes / (1024L * 1024L)),
+            Some(location),
+            None
+          )
         )
       yield ()
     }
@@ -81,7 +101,7 @@ final class BackupExecutor(
   private def validateJob(job: BackupJob): Task[Unit] =
     job.sourceType match
       case SourceType.PostgreSQL => ZIO.unit
-      case other                 => ZIO.fail(new IllegalArgumentException(s"Unsupported source type for backup: $other"))
+      case other => ZIO.fail(new IllegalArgumentException(s"Unsupported source type for backup: $other"))
 
   private def runPgDump(source: String, dumpFile: Path): Task[Unit] =
     ZIO.attemptBlocking {
@@ -103,7 +123,7 @@ final class BackupExecutor(
 
       val processBuilder = new ProcessBuilder(command*)
       connection.password.foreach(pw => processBuilder.environment().put("PGPASSWORD", pw))
-      val process  = processBuilder.redirectErrorStream(true).start()
+      val process = processBuilder.redirectErrorStream(true).start()
       val exitCode = process.waitFor()
       if exitCode != 0 then
         val output = new String(process.getInputStream.readAllBytes(), StandardCharsets.UTF_8)
@@ -119,10 +139,10 @@ final class BackupExecutor(
   )
 
   private def parsePostgresSource(source: String): PostgresConnection =
-    val uri    = URI.create(source)
+    val uri = URI.create(source)
     val scheme = Option(uri.getScheme).map(_.toLowerCase)
-    val host   = Option(uri.getHost).getOrElse("")
-    val path   = Option(uri.getPath).getOrElse("")
+    val host = Option(uri.getHost).getOrElse("")
+    val path = Option(uri.getPath).getOrElse("")
     val database = if path.nonEmpty && path != "/" then path.stripPrefix("/") else host
     val (user, password) = Option(uri.getUserInfo) match
       case Some(value) if value.contains(":") =>

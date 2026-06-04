@@ -59,20 +59,28 @@ object BackupJobRoutes:
     Method.GET / "backup-jobs" / string("id") -> handler { (id: String, _: Request) =>
       ZIO.serviceWithZIO[Tracing] { tracing =>
         tracing.span("HTTP GET /backup-jobs/:id") {
-          BackupJobService.findById(id).map {
-            case Some(job) => jsonResponse(job.toJson)
-            case None      => notFound
-          }.mapError(internalError).merge
+          BackupJobService
+            .findById(id)
+            .map {
+              case Some(job) => jsonResponse(job.toJson)
+              case None      => notFound
+            }
+            .mapError(internalError)
+            .merge
         }
       }
     },
     Method.PATCH / "backup-jobs" / string("id") / "disable" -> handler { (id: String, _: Request) =>
       ZIO.serviceWithZIO[Tracing] { tracing =>
         tracing.span("HTTP PATCH /backup-jobs/:id/disable") {
-          BackupJobService.disable(id).map {
-            case Some(job) => jsonResponse(job.toJson)
-            case None      => notFound
-          }.mapError(internalError).merge
+          BackupJobService
+            .disable(id)
+            .map {
+              case Some(job) => jsonResponse(job.toJson)
+              case None      => notFound
+            }
+            .mapError(internalError)
+            .merge
         }
       }
     }

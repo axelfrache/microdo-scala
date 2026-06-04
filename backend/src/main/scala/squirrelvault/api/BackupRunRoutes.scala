@@ -34,10 +34,10 @@ object BackupRunRoutes:
       ZIO.serviceWithZIO[Tracing] { tracing =>
         tracing.span(s"HTTP POST /backup-jobs/$id/run") {
           (for
-            runId  <- ZIO.succeed(UUID.randomUUID().toString)
+            runId <- ZIO.succeed(UUID.randomUUID().toString)
             pending = BackupRun(runId, id, RunStatus.Pending, None, None, None, None, None, None)
-            _      <- ZIO.serviceWithZIO[BackupRunRepository](_.create(pending))
-            _      <- ZIO.serviceWithZIO[BackupRunDispatcher](_.enqueue(id, runId))
+            _ <- ZIO.serviceWithZIO[BackupRunRepository](_.create(pending))
+            _ <- ZIO.serviceWithZIO[BackupRunDispatcher](_.enqueue(id, runId))
           yield jsonResponse(RunStarted(runId, RunStatus.Pending).toJson, Status.Accepted))
             .mapError(internalError)
             .merge
@@ -67,8 +67,8 @@ object BackupRunRoutes:
       ZIO.serviceWithZIO[Tracing] { tracing =>
         tracing.span("HTTP GET /backup-history") {
           (for
-            jobs   <- ZIO.serviceWithZIO[BackupJobRepository](_.findAll(None))
-            runs   <- ZIO.serviceWithZIO[BackupRunRepository](_.listAll())
+            jobs <- ZIO.serviceWithZIO[BackupJobRepository](_.findAll(None))
+            runs <- ZIO.serviceWithZIO[BackupRunRepository](_.listAll())
             jobById = jobs.map(job => job.id -> job).toMap
             history = runs.flatMap(run => jobById.get(run.jobId).map(job => BackupHistoryEntry(job, run)))
           yield jsonResponse(history.toJson))

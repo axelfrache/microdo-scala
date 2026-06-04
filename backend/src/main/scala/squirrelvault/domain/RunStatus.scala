@@ -19,4 +19,4 @@ object RunStatus:
       .toRight(s"Invalid RunStatus: '$s'. Valid values: ${values.map(toDb).mkString(", ")}")
   }
   given JsonEncoder[RunStatus] = JsonEncoder.string.contramap(toDb)
-  given JsonCodec[RunStatus]   = JsonCodec(JsonEncoder[RunStatus], JsonDecoder[RunStatus])
+  given JsonCodec[RunStatus] = JsonCodec(JsonEncoder[RunStatus], JsonDecoder[RunStatus])

@@ -32,7 +32,17 @@ object BackupRunRoutesSpec extends ZIOSpecDefault:
           now <- Clock.instant
           _ <- repo.update(
             squirrelvault.domain
-              .BackupRun(runId, jobId, RunStatus.Success, Some(now), Some(now), Some(0), Some(10), Some("s3://dummy"), None)
+              .BackupRun(
+                runId,
+                jobId,
+                RunStatus.Success,
+                Some(now),
+                Some(now),
+                Some(0),
+                Some(10),
+                Some("s3://dummy"),
+                None
+              )
           )
         yield ()
   }
