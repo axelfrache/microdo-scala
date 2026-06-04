@@ -1,6 +1,6 @@
 package squirrelvault.api
 
-import squirrelvault.domain.{BackupJob, SourceType}
+import squirrelvault.domain.{BackupJob, RunStatus, SourceType}
 import squirrelvault.repository.InMemoryBackupRunRepository
 import squirrelvault.repository.InMemoryBackupJobRepository
 import squirrelvault.repository.BackupJobRepository
@@ -32,7 +32,7 @@ object BackupRunRoutesSpec extends ZIOSpecDefault:
           now <- Clock.instant
           _ <- repo.update(
             squirrelvault.domain
-              .BackupRun(runId, jobId, "SUCCESS", Some(now), Some(now), Some(0), Some(10), Some("s3://dummy"), None)
+              .BackupRun(runId, jobId, RunStatus.Success, Some(now), Some(now), Some(0), Some(10), Some("s3://dummy"), None)
           )
         yield ()
   }
@@ -83,7 +83,7 @@ object BackupRunRoutesSpec extends ZIOSpecDefault:
             response.status == Status.Accepted,
             startRun.status == "PENDING",
             statusResponse.status == Status.Ok,
-            run.status == "SUCCESS"
+            run.status == RunStatus.Success
           )
         }
       }
