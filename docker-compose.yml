@@ -1,5 +1,5 @@
 services:
-  backend:
+  squirrel-backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -35,7 +35,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
+      - squirrel-backend
 
   postgres:
     image: postgres:16-alpine
